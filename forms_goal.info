@@ -1,0 +1,6 @@
+name = Forms Goal
+description = Отслеживание форм в Я.Метрике
+core = 7.x
+
+package = Webform
+dependencies[] = webform

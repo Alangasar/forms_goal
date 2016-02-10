@@ -1,0 +1,74 @@
+<?php
+
+/**
+ * Implements of hook_node_menu().
+ * @link https://api.drupal.org/api/drupal/modules%21system%21system.api.php/function/hook_menu/7
+ */
+function forms_goal_menu() {
+
+  $items['admin/config/content/forms_goal'] = array(
+    'title' => 'Настройка отслеживания форм',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('forms_goal_settings_form'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+function forms_goal_settings_form($form, &$form_state) {
+  $form = array();
+
+  $form['forms_goal_counter_id'] = array(
+    '#type' => 'textfield',
+    '#title' => 'ID счетчика из Я.Метрики',
+    '#default_value' => variable_get('forms_goal_counter_id', ''),
+    '#size' => 32,
+    '#maxlength' => 32,
+    '#required' => TRUE,
+  );
+  return system_settings_form($form);
+}
+
+
+function forms_goal_form_webform_configure_form_alter(&$form, &$form_state){
+  $node = $form_state['build_info']['args'][0];
+
+  $form['forms_goal_ajax_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Достижение цели',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $form['forms_goal_ajax_fieldset']['forms_goal_target'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Target name'),
+    '#description' => 'Имя цели (TARGET_NAME). Описание добавить',
+    '#default_value' => $node->webform['forms_goal_target'],
+  );
+
+  array_unshift($form['#submit'], 'forms_goal_webform_configure_form_submit');
+}
+
+/**
+ * Additional submit callback for form webform_configure_form.
+ */
+function forms_goal_webform_configure_form_submit(&$form, &$form_state) {
+  $form['#node']->webform['forms_goal_target'] = $form_state['values']['forms_goal_target'];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * With FORM_ID = webform_client_form.
+ */
+function forms_goal_form_webform_client_form_alter(&$form, $form_state, $form_id) {
+  $webform = $form['#node']->webform;
+  $forms_goal_counter_id = variable_get('forms_goal_counter_id', '');
+  if ($webform['forms_goal_target'] != '' && $forms_goal_counter_id != '') {
+    $target = check_plain($webform['forms_goal_target']);
+    $form['#attributes'] = array('onsubmit' => 'yaCounter' . $forms_goal_counter_id . '.reachGoal(\'' . $target . '\'); return true;');
+  }
+}
